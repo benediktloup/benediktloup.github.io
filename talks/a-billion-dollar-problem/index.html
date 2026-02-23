@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <title>A billion dollar problem</title>
+
+    <link rel="stylesheet" href="dist/reset.css" />
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="dist/theme/dracula.css" />
+
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h2>A billion dollar problem:<br />Proper null handling in Java</h2>
+          <img src="img/openvalue.png" width="20%" style="padding-top: 30px" />
+        </section>
+
+        <!-- Who am I-->
+        <section data-auto-animate data-auto-animate-id="who-am-i">
+          <h2>Who am I?</h2>
+          <img src="img/IMG_5759.jpeg" width="30%" /><br />
+          <ul>
+            <li>Benedikt Loup</li>
+            <li>32 years old</li>
+            <li>Software Engineer at OpenValue</li>
+            <li>Father of a one-year old son</li>
+            <li>President of a local carnival club</li>
+          </ul>
+        </section>
+
+        <section data-auto-animate data-auto-animate-id="who-am-i">
+          <h2>Who am I?</h2>
+          <img src="img/carnival.jpeg" width="40%" />
+        </section>
+
+        <!-- Roadmap -->
+        <section>
+          <h2>Roadmap</h2>
+          <ol>
+            <li>What actually is null?</li>
+            <li>A billion dollar problem?</li>
+            <li>Classic null checks</li>
+            <li>Optionals</li>
+            <li>Annotation-based approaches</li>
+            <li>Structured exception handling</li>
+            <li>Outlook: Null-restricted value class types</li>
+            <li>Conclusion</li>
+          </ol>
+        </section>
+
+        <!-- 1. What actually is null -->
+        <section data-auto-animate data-auto-animate-id="chapter-1">
+          <h2>1. What actually is null?</h2>
+        </section>
+
+        <!-- 1. What actually is null -->
+        <section data-auto-animate data-auto-animate-id="chapter-1">
+          <h2>1. What actually is null?</h2>
+          <ul>
+            <li>Null means having no value.</li>
+            <li>In other words: Points in no direction.</li>
+            <li>Reference to the zero address in memory.</li>
+            <ul>
+              <li>JVM proactively checks that</li>
+              <li>Prevents "Illegal operation" crashes</li>
+            </ul>
+          </ul>
+        </section>
+
+        <!-- 1. What actually is null -->
+        <section data-auto-animate data-auto-animate-id="chapter-1">
+          <h2>1. What actually is null?</h2>
+          <pre>
+            <code class="language-java" data-trim data-line-numbers>
+              // Primitives: Can't be null by design
+              byte    var1 = null;
+              short   var2 = null;
+              int     var3 = null;
+              long    var4 = null;
+              float   var5 = null;
+              double  var6 = null;
+              char    var7 = null;
+              boolean var8 = null;
+            </code>
+          </pre>
+          <ul>
+            <li>Primitive types <strong>can't</strong> be null.</li>
+            <li>Actual value is stored on the stack.</li>
+            <li>Will throw errors during build</li>
+          </ul>
+        </section>
+
+        <!-- 1. What actually is null -->
+        <section data-auto-animate data-auto-animate-id="chapter-1">
+          <h2>1. What actually is null?</h2>
+          <pre>
+            <code class="language-java" data-trim data-line-numbers>
+              // Primitives: Can't be null by design
+              byte    var1 = 0;
+              short   var2 = 0;
+              int     var3 = 0;
+              long    var4 = 0;
+              float   var5 = 0;
+              double  var6 = 0;
+              char    var7 = 0;
+              boolean var8 = false;
+            </code>
+          </pre>
+          <ul>
+            <li>Primitive types <strong>can't</strong> be null.</li>
+            <li>Actual value is stored on the stack.</li>
+            <li>Will throw errors during build</li>
+            <li>Only default values allowed</li>
+          </ul>
+        </section>
+
+        <!-- 1. What actually is null -->
+        <section data-auto-animate data-auto-animate-id="chapter-1">
+          <h2>1. What actually is null?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              // Reference-types: Can be null by design
+              Byte        var1 = null;
+              Short       var2 = null;
+              Integer     var3 = null;
+              Long        var4 = null;
+              Float       var5 = null;
+              Double      var6 = null;
+              Character   var7 = null;
+              Boolean     var8 = null;
+            </code>
+          </pre>
+          <ul>
+            <li>Reference-types <strong>can</strong> be null.</li>
+            <li>Value's heap address is stored on the stack</li>
+            <li>Applies to all objects</li>
+          </ul>
+          <aside class="notes">
+            <ul>
+              <li>
+                Wrapper-classes can easily introduce confusion (but they're
+                providing handy utils)
+              </li>
+              <li>
+                Due to strong object-orientation and less out-of-the-box null
+                handling, things can go terribly wrong.
+              </li>
+            </ul>
+          </aside>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <p class="r-fit-text" style="text-align: left">
+            <em
+              >"I call it my billion-dollar mistake. It was the invention of the
+              null reference in 1965. At that time, I was designing the first
+              comprehensive type system for references in an object oriented
+              language (ALGOL W). My goal was to ensure that all use of
+              references should be absolutely safe, with checking performed
+              automatically by the compiler. But I couldn't resist the
+              temptation to put in a null reference, simply because it was so
+              easy to implement. This has led to innumerable errors,
+              vulnerabilities, and system crashes, which have probably caused a
+              billion dollars of pain and damage in the last forty years."</em
+            >
+          </p>
+          <p style="float: right"><em>- Tony Hoare, 2009</em></p>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <ul>
+            <li>Null can be everywhere in Java.</li>
+            <li>The problem? This can cause exceptions anytime.</li>
+            <li>Nullability is not always clear on first sight.</li>
+            <li>External libraries make this even worse.</li>
+          </ul>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              record Cat(String name) {}
+
+              Cat myCat = new Cat(null);
+              
+              int len = myCat.name().length();
+              System.out.println("My cat's name has " + len + " letters");
+            </code>
+          </pre>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="|5">
+              record Cat(String name) {}
+
+              Cat myCat = new Cat(null);
+              
+              int len = myCat.name().length();
+              System.out.println("My cat's name has " + len + " letters");
+            </code>
+          </pre>
+          <p>Output:</p>
+          <pre style="white-space: pre-wrap">
+Exception in thread "main" java.lang.NullPointerException at Demo.main(Demo.java:5)</pre
+          >
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="5">
+              record Cat(String name) {}
+
+              Cat myCat = new Cat(null);
+              
+              int len = myCat.name().length();
+              System.out.println("My cat's name has " + len + " letters");
+            </code>
+          </pre>
+          <h7>Sometimes, nullability is pretty obvious.</h7>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              class CatShelter implements Shelter&lt;Cat&gt; {
+                  // ...
+                  @Override
+                  public List&lt;Cat&gt; getAnimals() {
+                      return cats;
+                  }
+              }
+
+              Shelter shelter = new CatShelter();
+
+              // ...
+
+              String name = shelter.getAnimals().getFirst().name();
+              System.out.println("The first cat's name is " + name);
+            </code>
+          </pre>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="|13|9|13">
+              class CatShelter implements Shelter&lt;Cat&gt; {
+                  // ...
+                  @Override
+                  public List&lt;Cat&gt; getAnimals() {
+                      return cats;
+                  }
+              }
+
+              Shelter shelter = new CatShelter();
+
+              // ...
+
+              String name = shelter.getAnimals().getFirst().name();
+              System.out.println("The first cat's name is " + name);
+            </code>
+          </pre>
+          <p>Output:</p>
+          <pre style="white-space: pre-wrap">
+Exception in thread "main" java.lang.NullPointerException at Demo.main(Demo.java:13)</pre
+          >
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="13">
+              class CatShelter implements Shelter&lt;Cat&gt; {
+                  // ...
+                  @Override
+                  public List&lt;Cat&gt; getAnimals() {
+                      return cats;
+                  }
+              }
+
+              Shelter shelter = new CatShelter();
+
+              // ...
+
+              String name = shelter.getAnimals().getFirst().name();
+              System.out.println("The first cat's name is " + name);
+            </code>
+          </pre>
+          <h7>Abstraction increases complexity.</h7>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              @Inject Shelter shelter;
+
+              public int countLettersInFirstAnimalsName() {
+                  return shelter.getAnimals().getFirst().name().length();
+              }
+            </code>
+          </pre>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="|4|1|4">
+              @Inject Shelter shelter;
+
+              public int countLettersInFirstAnimalsName() {
+                  return shelter.getAnimals().getFirst().name().length();
+              }
+            </code>
+          </pre>
+          <p>Output:</p>
+          <pre style="white-space: pre-wrap">
+Exception in thread "main" java.lang.NullPointerException at Demo.main(Demo.java:4)</pre
+          >
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="4">
+              @Inject Shelter shelter;
+
+              public int countLettersInFirstAnimalsName() {
+                  return shelter.getAnimals().getFirst().name().length();
+              }
+            </code>
+          </pre>
+          <h7>With DI frameworks things can get messy.</h7>
+
+          <aside class="notes">
+            <ul>
+              <li>Are the dependencies initialized yet?</li>
+              <li>Which layers are abstracted away?</li>
+              <li>How's null handled throughout those layers?</li>
+            </ul>
+          </aside>
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <ul>
+            <li>
+              Good news: Since JDK 14 null pointer exceptions are more helpful.
+            </li>
+          </ul>
+
+          <p>Example (&lt; JDK 14):</p>
+          <pre><code class="language-java" data-trim>
+            // Caused an NPE
+            String name = shelter.getAnimals().getFirst().name();</code
+          ></pre>
+          <pre style="white-space: pre-wrap">
+Exception in thread "main" java.lang.NullPointerException at Demo.main(Demo.java:4)</pre
+          >
+        </section>
+
+        <!-- 2. A billion dollar problem? -->
+        <section data-auto-animate data-auto-animate-id="chapter-2">
+          <h2>2. A billion dollar problem?</h2>
+          <ul>
+            <li>
+              Good news: Since JDK 14 null pointer exceptions are more helpful.
+            </li>
+          </ul>
+
+          <p>Example (&gt;= JDK 14):</p>
+          <pre><code class="language-java" data-trim>
+            // Caused an NPE
+            String name = shelter.getAnimals().getFirst().name();</code
+          ></pre>
+          <pre style="white-space: pre-wrap">
+Exception in thread "main" java.lang.NullPointerException: Cannot read field "name" because the return value of "java.util.List.getFirst()" is null at Demo.main(Demo.java:13)</pre
+          >
+        </section>
+
+        <!-- 3. Classic null checks -->
+        <section data-auto-animate data-auto-animate-id="chapter-3">
+          <h2>3. Classic null checks</h2>
+        </section>
+
+        <!-- 3. Classic null checks -->
+        <section data-auto-animate data-auto-animate-id="chapter-3">
+          <h2>3. Classic null checks</h2>
+          <pre>
+            <code class="language-java" data-trim data-line-numbers>
+              if (myObject != null) {
+                  // Do something
+              } else {
+                  // Error handling
+              }
+            </code>
+          </pre>
+        </section>
+
+        <!-- 3. Classic null checks -->
+        <section data-auto-animate data-auto-animate-id="chapter-3">
+          <h2>3. Classic null checks</h2>
+          <pre>
+            <code class="language-java" data-trim data-line-numbers>
+              if (myObject != null) {
+                  // Do something
+              } else {
+                  // Error handling
+              }
+            </code>
+          </pre>
+          <ul>
+            <li>Checks the object reference for being null</li>
+            <li>Easy to apply</li>
+            <li>Low complexity</li>
+            <li>No additional dependencies required</li>
+            <li>But: Readability could suffer</li>
+          </ul>
+        </section>
+
+        <!-- 3. Classic null checks -->
+        <section data-auto-animate data-auto-animate-id="chapter-3">
+          <h2>3. Classic null checks</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              @Inject Shelter shelter;
+
+              public int countLettersInFirstAnimalsName() {
+                  return shelter.getAnimals().getFirst().name().length();
+              }
+            </code>
+          </pre>
+          <h7>Things can blow up fast...</h7>
+        </section>
+
+        <!-- 3. Classic null checks -->
+        <section data-auto-animate data-auto-animate-id="chapter-3">
+          <h2>3. Classic null checks</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="|4|19|5|6|17|7|8|15|9|10|13|11" style="max-height: none;">
+              @Inject Shelter shelter;
+
+              public int countLettersInFirstAnimalsName() {
+                  if (shelter != null) {
+                      var animals = shelter.getAnimals();
+                      if (animals != null) {
+                          var animal = animals.getFirst();
+                          if (animal != null) {
+                              var name = animal.name();
+                              if (name != null) {
+                                  return name.length();
+                              }
+                              // Error: Animal's name is null
+                          }
+                          // Error: Animal with given index is null
+                      }
+                      // Error: List of animals is null
+                  }
+                  // Error: Shelter is null
+              }
+            </code>
+
+            <aside class="notes">
+              <ul>
+                <li>Modern DI frameworks (like Spring Boot) will actively check if a dependency is satisfied with an non-null bean.</li>
+                <li>Btw.: Nightmare when it comes to code coverage</li>
+              </ul>
+            </aside>
+          </pre>
+        </section>
+
+        <!-- 4. Optionals -->
+        <section data-auto-animate data-auto-animate-id="chapter-4">
+          <h2>4. Optionals</h2>
+        </section>
+
+        <!-- 4. Optionals -->
+        <section data-auto-animate data-auto-animate-id="chapter-4">
+          <h2>4. Optionals</h2>
+          <ul>
+            <li>Introduced in JDK 8</li>
+            <li>Wraps nullable objects safely.</li>
+            <li><code>get()</code> returns the value, if existing</li>
+            <li>Indicates the developers to handle the empty-case.</li>
+            <li>
+              Chaining (Java Stream API) improves null-handling even further.
+            </li>
+          </ul>
+        </section>
+
+        <!-- 4. Optionals -->
+        <section data-auto-animate data-auto-animate-id="chapter-4">
+          <h2>4. Optionals</h2>
+          <ul>
+            <li>
+              Option 1: Return <code>Optional&lt;T&gt;</code> in your methods
+            </li>
+            <li>
+              Option 2: Wrap nullables in <code>Optional.ofNullable(x)</code>
+            </li>
+            <li>
+              <code>isEmpty()</code>, <code>isPresent()</code> to check
+              availability
+            </li>
+          </ul>
+        </section>
+
+        <!-- 4. Optionals -->
+        <section data-auto-animate data-auto-animate-id="chapter-4">
+          <h2>4. Optionals</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers style="max-height: none;">
+              public class Cat {
+                public Cat(String name) {
+                  this(name, null);
+                }
+
+                public Cat(String name, Race race) {
+                  this.name = name;
+                  this.race = race;
+                }
+              }
+            </code>
+          </pre>
+          <h7>Attention: Don't use Optionals as parameters.</h7>
+
+          <aside class="notes">
+            <ul>
+              <li>Don't trust user input</li>
+            </ul>
+          </aside>
+        </section>
+
+        <!-- 4. Optionals -->
+        <section data-auto-animate data-auto-animate-id="chapter-4">
+          <h2>4. Optionals</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers style="max-height: none;">
+              public class Cat {
+                public Cat(String name, Optional&lt;Race&gt; race) {
+                  this.name = name;
+                  race.ifPresent(optRace -> {
+                    this.race = optRace
+                  });
+                }
+              }
+              // ...
+              var cat = new Cat("Amy", null); // Still fine
+            </code>
+          </pre>
+          <h7>Attention: Don't use Optionals as parameters.</h7>
+
+          <aside class="notes">
+            <ul>
+              <li>Don't trust user input</li>
+            </ul>
+          </aside>
+        </section>
+
+        <!-- 4. Optionals -->
+        <section data-auto-animate data-auto-animate-id="chapter-4">
+          <h2>4. Optionals</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="|4|5|6|7|8|9" style="max-height: none;">
+              @Inject Shelter shelter;
+              
+              public int countLettersInFirstAnimalsName() {
+                return Optional.ofNullable(shelter)
+                  .map(Shelter::getAnimals)
+                  .map(List::getFirst)
+                  .map(Animal::name)
+                  .map(String::length)
+                  .orElse(0); // .orElseThrow(...)
+              }
+            </code>
+          </pre>
+        </section>
+
+        <!-- 4. Optionals -->
+        <section data-auto-animate data-auto-animate-id="chapter-4">
+          <h2>4. Optionals</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers="|3|5|6" style="max-height: none;">
+              public void updateCat(int id, CatDto dto) {
+                // Spring JPA repositories also return Optionals
+                catRepository.findById(id).ifPresent(cat -> {
+                  // Update name  
+                  Optional.ofNullable(dto.getName())
+                      .ifPresent(cat::setName);
+                });
+              }
+            </code>
+          </pre>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+          <ul>
+            <li>Indicate nullability with annotations.</li>
+            <li>Natively included in the JDK (JSR-305).</li>
+            <li>Provided by many different frameworks/tools.</li>
+            <ul>
+              <li>Findbugs</li>
+              <li>Lombok</li>
+              <li>Checker Framework</li>
+              <li>Eclipse</li>
+              <li>IntelliJ</li>
+            </ul>
+          </ul>
+
+          <aside class="notes">
+            <ul>
+              <li>
+                JSR-305 is dormant for years (since Java 1.7) and never reached
+                the goal in finding a standard.
+              </li>
+              <li>Don't use IDE-related annotations!</li>
+            </ul>
+          </aside>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+          <ul>
+            <li>A standard is missing for years.</li>
+            <li>Uncontrolled growth has happened.</li>
+            <ul>
+              <li>@NonNull, @Nonnull, @NotNull</li>
+              <li>Which to choose?</li>
+            </ul>
+            <li>Different libraries can be mixed up pretty easy.</li>
+          </ul>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+          <ul>
+            <li>JSpecify to the rescue!</li>
+            <li>
+              Annotation set developed by several organizations (i.e., Google,
+              JetBrains, Meta, Microsoft, Oracle, Sonar)
+            </li>
+            <li>Not a tool itself (!), but a precise specification.</li>
+            <li>Introduced in Spring Boot 4 and Spring Framework 7</li>
+          </ul>
+
+          <aside class="notes">
+            <ul>
+              <li>JSpecify only provides the annotations and documentation.</li>
+              <li>Tool have to be integrated into build ecosystems.</li>
+              <li>Nullaway is a famous tool here.</li>
+            </ul>
+          </aside>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+
+          <h7>Fields can be annotated...</h7>
+
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              // Value of this type SHOULDN'T be null
+              @NonNull
+              public Long id;
+
+              // Value of this type CAN be null
+              @Nullable
+              public String fullName;
+            </code>
+          </pre>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+
+          <h7>but also parameters...</h7>
+
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              // Value of this type SHOULDN'T be null
+              public void doSomethingSafe(@NonNull String instruction) {};
+
+              // Value of this type CAN be null
+              public void doSomething(@Nullable String beCarefulWithThis) {};
+            </code>
+          </pre>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+
+          <h7>and methods as well.</h7>
+
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              // Value of this type SHOULDN'T be null
+              public @NonNull String doSomethingSafe(String instruction) {};
+
+              // Value of this type CAN be null
+              public @Nullable String doSomething(String instruction) {};
+            </code>
+          </pre>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+
+          <ul>
+            <li>Java's nullability is unspecified by default.</li>
+            <li><code>@NullMarked</code> can be used to change that.</li>
+            <ul>
+              <li>Everyting is treated as <code>@NonNull</code></li>
+              <li>Can be applied to modules, packages, classes, interfaces.</li>
+            </ul>
+            <li><code>@NullUnmarked</code> can be used as exclusion.</li>
+          </ul>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+
+          <h7
+            >Attention: JSpecify does NOT actively solve the nullability
+            problem, but helps tools to be implemented alongside with their
+            specification.</h7
+          >
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+
+          <img src="img/intellij.png" />
+          <h7>IntelliJ handles JSpecify annotations already internally.</h7>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+
+          <ul>
+            <li>IDE warnings can be ignored or missed.</li>
+            <li>NullAway (Uber) checks this at buildtime.</li>
+            <li>Breaking builds early</li>
+            <li>Helps building null-robust code.</li>
+          </ul>
+        </section>
+
+        <!-- 5. Annotation-based approaches -->
+        <section data-auto-animate data-auto-animate-id="chapter-5">
+          <h2>5. Annotation-based approaches</h2>
+
+          <img src="img/nullaway.png" />
+        </section>
+
+        <!-- 6. Structured exception handling -->
+        <section data-auto-animate data-auto-animate-id="chapter-6">
+          <h2>6. Structured exception handling</h2>
+        </section>
+
+        <!-- 6. Structured exception handling -->
+        <section data-auto-animate data-auto-animate-id="chapter-6">
+          <h2>6. Structured exception handling</h2>
+          <ul>
+            <li>'Alternative' for checking and preventing NPEs</li>
+            <li>Increase resilience by catching runtime exceptions</li>
+            <li>Problem: Not always clear what typically can happen when.</li>
+          </ul>
+
+          <aside class="notes">
+            Non-runtime exceptions are already covered when compiling code.
+          </aside>
+        </section>
+
+        <!-- 6. Structured exception handling -->
+        <section data-auto-animate data-auto-animate-id="chapter-6">
+          <h2>6. Structured exception handling</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              // Catch all exceptions right away is
+              try {
+                SpringApplication.run(App.class, args);
+              } catch (Exception e) {
+                // ... not always the best idea
+              }
+            </code>
+          </pre>
+
+          <h7
+            >Attention: Catching everything without proper handling can cause
+            severe issues.</h7
+          >
+
+          <aside class="notes">
+            <ul>
+              <li>
+                Danger, because dozens of exception types with different
+                meanings.
+              </li>
+              <li>Can be used as last resort to avoid system crash.</li>
+              <li>Transfer application to a safe-state.</li>
+            </ul>
+          </aside>
+        </section>
+
+        <!-- 6. Structured exception handling -->
+        <section data-auto-animate data-auto-animate-id="chapter-6">
+          <h2>6. Structured exception handling</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              try {
+                checkPreconditions();
+                doSomething();
+              } catch (Exception preException) {
+                // Indicate issues with the preconditions
+              } catch (Exception doException) {
+                // Indicate issues with the action itself
+              } catch (Exception fallback) {
+                // No exception matches
+              }
+            </code>
+          </pre>
+        </section>
+
+        <!-- 6. Structured exception handling -->
+        <section data-auto-animate data-auto-animate-id="chapter-6">
+          <h2>6. Structured exception handling</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              try {
+                checkPreconditions();
+                doSomething();
+              } catch (Exception preException) {
+                // Indicate issues with the preconditions
+              } catch (Exception doException) {
+                // Indicate issues with the action itself
+              } catch (Exception fallback) {
+                // No exception matches
+              }
+            </code>
+          </pre>
+
+          <ul>
+            <li>Choose wise locations and exception types to catch.</li>
+            <li>As narrow as possible, as wide as needed</li>
+            <li>Handle issues properly with error messages, logs etc.</li>
+            <li>Fallback case should return app to safe state.</li>
+          </ul>
+        </section>
+
+        <!-- 7. Outlook: Null-restricted value class types -->
+        <section data-auto-animate data-auto-animate-id="chapter-7">
+          <h2>Outlook: Null-restricted value class types</h2>
+        </section>
+
+        <!-- 7. Outlook: Null-restricted value class types -->
+        <section data-auto-animate data-auto-animate-id="chapter-7">
+          <h2>Outlook: Null-restricted value class types</h2>
+          <ul>
+            <li>JEP-401 (project Valhalla) introduces value classes.</li>
+            <li>Flattening objects to be stored on the stack.</li>
+            <li>Improvements of the memory footprint and performance.</li>
+            <li>Should be non-null by design</li>
+            <li>But: Extra bits are required to encode null (yet).</li>
+          </ul>
+        </section>
+
+        <!-- 7. Outlook: Null-restricted value class types -->
+        <section data-auto-animate data-auto-animate-id="chapter-7">
+          <h2>Outlook: Null-restricted value class types</h2>
+          <ul>
+            <li>
+              A JEP-draft discusses introducing null-restricted value class
+              types.
+            </li>
+            <li>Additional memory savings due to spare null-bits</li>
+            <li>Performance like value classes while being null-safe</li>
+          </ul>
+        </section>
+
+        <!-- 7. Outlook: Null-restricted value class types -->
+        <section data-auto-animate data-auto-animate-id="chapter-7">
+          <h2>Outlook: Null-restricted value class types</h2>
+          <pre data-id="code-animation">
+            <code class="language-java" data-trim data-line-numbers>
+              value record Cat(String! name) {};
+
+              Cat cat = new Cat(null) // Not possible anymore!
+            </code>
+          </pre>
+
+          <h7
+            >Secure access to non-null fields while removing boilerplate
+            code.</h7
+          >
+
+          <aside class="notes">
+            <ul>
+              <li>Without identity, equality can be checked with `==`</li>
+              <li>The name can NEVER be null.</li>
+            </ul>
+          </aside>
+        </section>
+
+        <!-- 8. Conclusion -->
+        <section data-auto-animate data-auto-animate-id="chapter-8">
+          <h2>Conclusion</h2>
+        </section>
+
+        <!-- 8. Conclusion -->
+        <section data-auto-animate data-auto-animate-id="chapter-8">
+          <h2>Conclusion</h2>
+          <ul>
+            <li>As always: There is no 'one size fits all'.</li>
+            <li>Choose what your team could handle best.</li>
+            <li>Null checks and structured exception handling aren't ideal.</li>
+            <li>Working with Optionals is a good trade-off.</li>
+            <li>JSpecify requires changes in build pipelines.</li>
+            <li>Null-restricted value classes could be a game-changer.</li>
+          </ul>
+        </section>
+
+        <!-- That's it -->
+        <section data-auto-animate data-auto-animate-id="final">
+          <h2>Thank you.</h2>
+          If you've any questions, feel free to ask!
+        </section>
+      </div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script>
+      // More info about initialization & config:
+      // - https://revealjs.com/initialization/
+      // - https://revealjs.com/config/
+      Reveal.initialize({
+        hash: true,
+        slideNumber: true,
+        // Learn about plugins: https://revealjs.com/plugins/
+        plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
+      });
+    </script>
+  </body>
+</html>
